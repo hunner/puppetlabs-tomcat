@@ -43,7 +43,7 @@ define tomcat::instance (
   $package_name           = undef,
   $package_options        = undef,
 ) {
-  include tomcat
+  include ::tomcat
   $_catalina_home = pick($catalina_home, $::tomcat::catalina_home)
   $_catalina_base = pick($catalina_base, $_catalina_home) #default to home
   tag(sha1($_catalina_home))

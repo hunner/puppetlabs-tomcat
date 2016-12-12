@@ -7,18 +7,17 @@
 # - The $source_url to install from.
 # - $source_strip_first_dir is a boolean specifying whether or not to strip
 #   the first directory when unpacking the source tarball. Defaults to true
-#   when installing from source on non-Solaris systems. Requires puppet/staging
+#   when installing from source on non-Solaris systems. Requires puppet/archive
 #   > 0.4.0
 define tomcat::install::source (
   $catalina_home,
   $manage_home,
   $source_url,
   $source_strip_first_dir,
-  $user,
   $group,
+  $user = 'root',
 ) {
   tag(sha1($catalina_home))
-  include ::staging
 
   if $caller_module_name != $module_name {
     fail("Use of private class ${name} by ${caller_module_name}")
@@ -26,6 +25,8 @@ define tomcat::install::source (
 
   if $source_strip_first_dir {
     $_strip = 1
+  } else {
+    $_strip = 0
   }
 
   $filename = regsubst($source_url, '.*/(.*)', '\1')
@@ -38,17 +39,15 @@ define tomcat::install::source (
     }
   }
 
-  ensure_resource('staging::file',$filename, {
-    'source' => $source_url,
-  })
-
-  staging::extract { "${name}-${filename}":
-    source  => "${::staging::path}/tomcat/${filename}",
-    target  => $catalina_home,
-    require => Staging::File[$filename],
-    unless  => "test -f ${catalina_home}/NOTICE",
-    user    => $user,
-    group   => $group,
-    strip   => $_strip,
+  archive { "${name}-${catalina_home}/${filename}":
+    path          => "${catalina_home}/${filename}",
+    source        => $source_url,
+    extract       => true,
+    extract_path  => $catalina_home,
+    creates       => "${catalina_home}/NOTICE",
+    extract_flags => "--strip ${_strip} -xf",
+    cleanup       => true,
+    user          => $user,
+    group         => $group,
   }
 }
